@@ -228,7 +228,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1071, 661);
+            this.ClientSize = new System.Drawing.Size(1038, 613);
             this.Controls.Add(this.btnStay);
             this.Controls.Add(this.btnBomb);
             this.Controls.Add(this.btnRight);
@@ -246,6 +246,7 @@
             this.Controls.Add(this.txtGameState);
             this.Controls.Add(this.btnPrev);
             this.Name = "HypersonicWindow";
+            this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.Text = "Hypersonic";
             this.Load += new System.EventHandler(this.HypersonicWindow_Load);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();

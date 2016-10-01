@@ -207,8 +207,7 @@ namespace HypersonicWindow
             {
                 foreach (Point d in Directions)
                 {
-                    int checkRange = (bomb.Range - 1) / 2;
-                    for (int i = 1; i <= checkRange; i++)
+                    for (int i = 1; i < bomb.Range; i++)
                     {
                         //
                         Point candidate = new Point(bomb.Position.X + d.X * i, bomb.Position.Y + d.Y * i);
@@ -240,8 +239,7 @@ namespace HypersonicWindow
             {
                 foreach (Point d in Directions)
                 {
-                    int checkRange = (my.Range - 1) / 2;
-                    for (int i = 1; i <= checkRange; i++)
+                    for (int i = 1; i < my.Range; i++)
                     {
                         //
                         Point candidate = new Point(p.X + d.X * i, p.Y + d.Y * i);

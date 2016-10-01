@@ -182,6 +182,7 @@ namespace HypersonicWindow
             }
             //Explode the bombs
             List<Point> boxes = new List<Point>();
+            HashSet<Tuple<Point, int>> boxesScores = new HashSet<Tuple<Point, int>>();
             List<int> playersHit = new List<int>();
             while (state.Entities.Exists(e => e.Type == ServerGameState.EntityType.Bomb && e.Rounds == 0))
             {
@@ -191,8 +192,7 @@ namespace HypersonicWindow
                 //
                 foreach (Point p in Directions)
                 {
-                    int checkRange = (bomb.Range - 1) / 2;
-                    for (int i = 1; i <= checkRange; i++)
+                    for (int i = 0; i < bomb.Range; i++)
                     {
                         //
                         Point candidate = new Point(bomb.Position.X + p.X * i, bomb.Position.Y + p.Y * i);
@@ -203,18 +203,30 @@ namespace HypersonicWindow
                         List<int> players = state.Entities
                             .Where(e => e.Type == ServerGameState.EntityType.Player && e.Position == candidate)
                             .Select(e => e.Team).ToList();
-                        foreach (int player in players) playersHit.Add(player);
+                        foreach (int player in players)
+                        {
+                            if (!playersHit.Contains(player))
+                            {
+                                state.Results += "Player " + player + " hit by a bomb\n";
+                                playersHit.Add(player);
+                            }
+                        }
                         //Mark boxes and stop the blast
                         if ("012".Contains(state.Board[candidate.X, candidate.Y]))
                         {
-                            if (bomb.Team == 0)
+                            Tuple<Point, int> score0 = new Tuple<Point, int>(candidate, 0);
+                            Tuple<Point, int> score1 = new Tuple<Point, int>(candidate, 1);
+                            if (!boxesScores.Contains(score0) && bomb.Team == 0)
                             {
+                                boxesScores.Add(score0);
                                 state.ScorePlayer++;
                             }
-                            else
+                            if (!boxesScores.Contains(score1) && bomb.Team == 1)
                             {
+                                boxesScores.Add(score1);
                                 state.ScoreHuman++;
                             }
+                            //
                             boxes.Add(candidate);
                             break;
                         }
@@ -321,7 +333,7 @@ namespace HypersonicWindow
                     ServerGameState.Entity item = state.Entities.Single(e => e.Type == ServerGameState.EntityType.Item && e.Position == player.Position);
                     if (item.Rounds == 1)
                     {
-                        player.Range += 2;
+                        player.Range += 1;
                         state.Results += "Player " + team + " got RANGE, now at " + player.Range + "\n";
                     }
                     else if (item.Rounds == 2)

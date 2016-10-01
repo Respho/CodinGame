@@ -60,6 +60,7 @@ namespace HypersonicWindow
         {
             Server.Move(direction, bomb);
             bomb = false;
+            btnBomb.BackColor = default(Color);
             update();
         }
 
@@ -90,6 +91,7 @@ namespace HypersonicWindow
         }
         private void btnBomb_Click(object sender, EventArgs e)
         {
+            btnBomb.BackColor = Color.OrangeRed;
             bomb = true;
         }
 
