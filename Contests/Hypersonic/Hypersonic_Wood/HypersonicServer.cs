@@ -188,10 +188,10 @@ namespace HypersonicWindow
             {
                 ServerGameState.Entity bomb = state.Entities.First(e => e.Type == ServerGameState.EntityType.Bomb && e.Rounds == 0);
                 bomb.Rounds = Exploded;
-                state.Blasts.Add(bomb.Position);
                 //
                 foreach (Point p in Directions)
                 {
+                    //Start from 0 to include blast map and trigger bombs at the same location
                     for (int i = 0; i < bomb.Range; i++)
                     {
                         //
@@ -233,8 +233,8 @@ namespace HypersonicWindow
                         //Trigger nearby bombs
                         if (state.Entities.Exists(e => e.Type == ServerGameState.EntityType.Bomb && e.Position == candidate && e.Rounds != Exploded))
                         {
-                            state.Entities.Single(e => e.Type == ServerGameState.EntityType.Bomb && e.Position == candidate).Rounds = 0;
-                            break;
+                            state.Entities.First(e => e.Type == ServerGameState.EntityType.Bomb && e.Position == candidate && e.Rounds != Exploded).Rounds = 0;
+                            if (i > 0) break;
                         }
                         //Stop at items
                         if (state.Entities.Exists(e => e.Type == ServerGameState.EntityType.Item && e.Position == candidate))
@@ -436,9 +436,8 @@ namespace HypersonicWindow
         public string ServerDebug, PlayerDebug, Moves, Results;
         public int ScorePlayer, ScoreHuman;
 
-        public static ServerGameState Initial()
+        static char[,] getBlankBoard()
         {
-            //
             char[,] board = new char[W, H];
             for (int i = 0; i < W; i++)
             {
@@ -447,6 +446,106 @@ namespace HypersonicWindow
                     board[i, j] = '.';
                 }
             }
+            return board;
+        }
+
+        static void setCheckerBoard(char[,] board)
+        {
+            for (int i = 0; i < W; i++)
+            {
+                for (int j = 0; j < H; j++)
+                {
+                    if (i % 2 == 1 && j % 2 == 1)
+                        board[i, j] = 'X';
+                }
+            }
+        }
+
+        static char[,] getBoard(string text)
+        {
+            char[,] board = new char[W, H];
+            for (int i = 0; i < W; i++)
+            {
+                for (int j = 0; j < H; j++)
+                {
+                    board[i, j] = text[j * GameState.W + i];
+                }
+            }
+            return board;
+        }
+
+        public static ServerGameState InitialEvasion()
+        {
+            //
+            string text = "";
+            text += ".............";
+            text += ".X.X.........";
+            text += ".2...........";
+            text += "..2X.........";
+            text += ".............";
+            text += ".............";
+            text += ".............";
+            text += ".............";
+            text += ".............";
+            text += ".............";
+            text += ".............";
+            char[,] board = getBoard(text);
+            //
+            List<Entity> entities = new List<Entity>();
+            entities.Add(new Entity() { Type = EntityType.Player, Position = new Point(3, 2), Team = 0, Rounds = 1, Range = 5 });
+            entities.Add(new Entity() { Type = EntityType.Player, Position = new Point(W - 1, H - 1), Team = 1, Rounds = 1, Range = 5 });
+            entities.Add(new Entity() { Type = EntityType.Bomb, Position = new Point(2, 1), Team = 1, Rounds = 5, Range = 3 });
+            //
+            return new ServerGameState(board, entities, "", "", "", "", 0, 0);
+        }
+
+        public static ServerGameState Initial()
+        {
+            //
+            string text = "";
+            text += "...2.101.2...";
+            text += ".X2X1X.X1X2X.";
+            text += ".2.1.2.2.1.2.";
+            text += "1X.X0X0X0X.X1";
+            text += "00...212...00";
+            text += ".X.X.X.X.X.X.";
+            text += "00...212...00";
+            text += "1X.X0X0X0X.X1";
+            text += ".2.1.2.2.1.2.";
+            text += ".X2X1X.X1X2X.";
+            text += "...2.101.2...";
+            char[,] board = getBoard(text);
+            //
+            List<Entity> entities = new List<Entity>();
+            entities.Add(new Entity() { Type = EntityType.Player, Position = new Point(0, 0), Team = 0, Rounds = 1, Range = 3 });
+            entities.Add(new Entity() { Type = EntityType.Player, Position = new Point(W - 1, H - 1), Team = 1, Rounds = 1, Range = 3 });
+            //
+            return new ServerGameState(board, entities, "", "", "", "", 0, 0);
+        }
+
+        public static ServerGameState InitialX()
+        {
+            //
+            char[,] board = getBlankBoard();
+            //
+            board[1, 1] = 'X'; board[3, 1] = 'X'; board[2, 2] = 'X'; board[0, 2] = 'X';
+            board[4, 1] = 'X'; board[5, 1] = 'X'; board[6, 1] = 'X';
+            //
+            List<Entity> entities = new List<Entity>();
+            entities.Add(new Entity() { Type = EntityType.Player, Position = new Point(5, 0), Team = 0, Rounds = 1, Range = 3 });
+            entities.Add(new Entity() { Type = EntityType.Player, Position = new Point(W - 1, H - 1), Team = 1, Rounds = 1, Range = 3 });
+            //
+            entities.Add(new Entity() { Type = EntityType.Bomb, Position = new Point(6, 0), Team = 1, Rounds = 7, Range = 8 });
+            entities.Add(new Entity() { Type = EntityType.Bomb, Position = new Point(7, 2), Team = 1, Rounds = 8, Range = 3 });
+            entities.Add(new Entity() { Type = EntityType.Item, Position = new Point(2, 1), Team = 0, Rounds = 1, Range = 0 });
+            //
+            return new ServerGameState(board, entities, "", "", "", "", 0, 0);
+        }
+
+        public static ServerGameState InitialWood()
+        {
+            //
+            char[,] board = getBlankBoard();
             //
             board[2, 1] = '1'; board[4, 1] = '2'; board[6, 1] = '1'; board[8, 1] = '2'; board[10, 1] = '1';
             board[0, 2] = '0'; board[12, 2] = '0';
@@ -526,7 +625,7 @@ namespace HypersonicWindow
         {
             //
             string board = getBoard();
-            board = board.Replace("1", "R").Replace("2", "B");
+            board = board.Replace("1", "R").Replace("2", "B").Replace("X", "W");
             //
             StringBuilder sb = new StringBuilder(board);
             foreach (Point p in Blasts)
