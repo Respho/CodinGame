@@ -26,7 +26,7 @@ namespace TronWindow
             listPlayer.Add(state.Players[PlayerNumber]);
             List<Point> listOpponent = new List<Point>();
             listOpponent.Add(state.Players[OpponentNumber]);
-            char player = (char)(PlayerNumber + 47); char opponent = (char)(OpponentNumber + 47);
+            char player = (char)(PlayerNumber + 48); char opponent = (char)(OpponentNumber + 48);
             while (territoryRound > 0)
             {
                 territoryRound = 0;

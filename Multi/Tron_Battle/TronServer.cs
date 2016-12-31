@@ -10,11 +10,13 @@ namespace TronWindow
 {
     public class TronServer
     {
+        char[] PlayerSetup = { 'H', 'P', 'P', 'P' };
+
         #region Basics
         public static Dictionary<string, Point> Directions = new Dictionary<string, Point>();
         public const int W = 30, H = 20, Scale = 16;
-        TronPlayer player = null;
         TronHuman human = null;
+        TronPlayer[] Players = new TronPlayer[4];
         public List<ServerGameState> States = new List<ServerGameState>();
         public int StatePointer;
 
@@ -28,7 +30,10 @@ namespace TronWindow
                 Directions.Add("LEFT", new Point(-1, 0));
             }
             human = new TronHuman(0);
-            player = new TronPlayer(1, 2);
+            Players[0] = new TronPlayer(PlayerSetup.Length, 0);
+            Players[1] = new TronPlayer(PlayerSetup.Length, 1);
+            Players[2] = new TronPlayer(PlayerSetup.Length, 2);
+            Players[3] = new TronPlayer(PlayerSetup.Length, 3);
             States.Add(ServerGameState.Initial());
         }
 
@@ -36,109 +41,6 @@ namespace TronWindow
         void debug(string message)
         {
             Debug += message + "\n";
-        }
-
-        public static int Manhattan(Point from, Point to)
-        {
-            return Math.Abs(from.X - to.X) + Math.Abs(from.Y - to.Y);
-        }
-
-        /*
-        http://theory.stanford.edu/~amitp/GameProgramming/ImplementationNotes.html
-        OPEN = priority queue containing START
-        CLOSED = empty set
-        while lowest rank in OPEN is not the GOAL:
-            current = remove lowest rank item from OPEN
-            add current to CLOSED
-            for neighbors of current:
-            cost = g(current) + movementcost(current, neighbor)
-            if neighbor in OPEN and cost less than g(neighbor):
-                remove neighbor from OPEN, because new path is better
-            if neighbor in CLOSED and cost less than g(neighbor): ⁽²⁾
-                remove neighbor from CLOSED
-            if neighbor not in OPEN and neighbor not in CLOSED:
-                set g(neighbor) to cost
-                add neighbor to OPEN
-                set priority queue rank to g(neighbor) + h(neighbor)
-                set neighbor's parent to current
-        */
-        public static List<Point> GetPath(ServerGameState state, Point startPoint, Point endPoint)
-        {
-            Dictionary<Point, Point> Froms = new Dictionary<Point, Point>();
-            Dictionary<Point, int> Steps = new Dictionary<Point, int>();
-            Dictionary<Point, int> Distances = new Dictionary<Point, int>();
-            //
-            HashSet<Point> OPEN = new HashSet<Point>() { startPoint };
-            HashSet<Point> CLOSED = new HashSet<Point>();
-
-            //
-            int Step = 0;
-            Froms[startPoint] = startPoint;
-            Steps[startPoint] = Step;
-            Distances[startPoint] = 0;
-            //while lowest rank in OPEN is not the GOAL
-            while ((OPEN.Count() > 0) && (OPEN.OrderBy(x => Distances[x]).First() != endPoint))
-            {
-                //current = remove lowest rank item from OPEN
-                //add current to CLOSED
-                Point current = OPEN.OrderBy(x => Distances[x]).First();
-                OPEN.Remove(current);
-                CLOSED.Add(current);
-                //for neighbors of current
-                List<Point> neighbors = new List<Point>();
-                neighbors.Add(new Point(current.X + 1, current.Y));
-                neighbors.Add(new Point(current.X - 1, current.Y));
-                neighbors.Add(new Point(current.X, current.Y + 1));
-                neighbors.Add(new Point(current.X, current.Y - 1));
-                foreach (Point neighbor in neighbors)
-                {
-                    //Is valid neighbor?
-                    if (neighbor.X >= W || neighbor.X < 0 || neighbor.Y >= H || neighbor.Y < 0) continue;
-                    if (state.Board[neighbor.X, neighbor.Y] != '.') continue;
-                    //cost = g(current) + movementcost(current, neighbor)
-                    int cost = Distances[current] + 1;
-                    //if neighbor in OPEN and cost less than g(neighbor)
-                    if (OPEN.Contains(neighbor) && (cost < Distances[neighbor]))
-                    {
-                        //remove neighbor from OPEN, because new path is better
-                        OPEN.Remove(neighbor);
-                    }
-                    //if neighbor in CLOSED and cost less than g(neighbor)
-                    if (CLOSED.Contains(neighbor) && (cost < Distances[neighbor]))
-                    {
-                        //remove neighbor from CLOSED
-                        CLOSED.Remove(neighbor);
-                    }
-                    //if neighbor not in OPEN and neighbor not in CLOSED:
-                    if (!OPEN.Contains(neighbor) && !CLOSED.Contains(neighbor))
-                    {
-                        //set g(neighbor) to cost
-                        Distances[neighbor] = cost;
-                        //add neighbor to OPEN
-                        OPEN.Add(neighbor);
-                        //set neighbor's parent to current
-                        Froms[neighbor] = current;
-                        Steps[neighbor] = Steps[current] + 1;
-                    }
-                }
-            }
-
-            //
-            List<Point> Result = new List<Point>();
-            //Impossible
-            if (!Froms.ContainsKey(endPoint))
-            {
-                return Result;
-            }
-            //
-            Point currNode = endPoint;
-            while (currNode != startPoint)
-            {
-                Result.Add(currNode);
-                currNode = Froms[currNode];
-            }
-            //
-            return Result;
         }
 
         public ServerGameState GetCurrent()
@@ -149,41 +51,48 @@ namespace TronWindow
 
         public void PlayOneMove()
         {
+            //
+            Debug = "";
             ServerGameState latest = States[States.Count() - 1];
-            if (latest.Players.Count() == 1) return;
+            if (latest.GameHasEnded()) return;
             //
             ServerGameState state = new ServerGameState(latest);
             States.Add(state);
             StatePointer = States.Count() - 1;
-
             //
-            Debug = "";
-            //
-            debug("human.GetMove()");
-            string moveHuman = human.GetMove(state.GetSerialization());
-            debug("updateGameState()");
-            updateGameState(state, moveHuman, 0);
-            if (latest.Players.Count() == 1) return;
-            //
-            debug("player.GetMove()");
-            string movePlayer = player.GetMove(state.GetSerialization());
-            debug("updateGameState()");
-            updateGameState(state, movePlayer, 1);
-            if (latest.Players.Count() == 1) return;
-            //
-            state.PlayerDebug = player.Debug;
-            state.Moves = moveHuman + "\n" + movePlayer;
+            for (int i = 0; i < PlayerSetup.Length; i++)
+            {
+                //End of game
+                if (state.GameHasEnded()) continue;
+                //Skip if player is dead
+                if (state.Players[i][0].X < 0) continue;
+                //
+                string move = "";
+                if (PlayerSetup[i] == 'H')
+                {
+                    debug("human.GetMove()");
+                    move = human.GetMove(state.GetSerialization(i));
+                }
+                else if (PlayerSetup[i] == 'P')
+                {
+                    debug("player.GetMove()");
+                    move = Players[i].GetMove(state.GetSerialization(i));
+                    state.PlayerDebug += Players[i].Debug + "\n";
+                }
+                state.Moves += move + "\n";
+                //
+                debug("updateGameState()");
+                updateGameState(state, move, i);
+            }
             //
             state.ServerDebug = Debug;
         }
 
-        private void updateGameState(ServerGameState state, string move, int playerNo)
+        private void updateGameState(ServerGameState state, string move, int playerNumber)
         {
-            char player = playerNo.ToString()[0];
-            List<Point> trail = state.Players[player];
+            //Update path
+            List<Point> trail = state.Players[playerNumber];
             Point current = trail[trail.Count() - 1];
-
-            //
             if (Directions.ContainsKey(move.Trim()))
             {
                 Point direction = Directions[move.Trim()];
@@ -192,24 +101,25 @@ namespace TronWindow
                 {
                     if (state.Board[next.X, next.Y] == '.')
                     {
-                        state.Board[next.X, next.Y] = player;
+                        state.Board[next.X, next.Y] = playerNumber.ToString()[0];
                         trail.Add(next);
-                        state.Results += "Moved to " + next.X + "," + next.Y + "\n";
+                        state.Results += "Player " + playerNumber + " moved to " + next.X + "," + next.Y + "\n";
                         return;
                     }
                 }
             }
 
             //Losing
+            char p = playerNumber.ToString()[0];
             for (int i = 0; i < W; i++)
             {
                 for (int j = 0; j < H; j++)
                 {
-                    if (state.Board[i, j] == player) state.Board[i, j] = '.';
+                    if (state.Board[i, j] == p) state.Board[i, j] = '.';
                 }
             }
-            state.Players.Remove(player);
-            state.Results += "Lost\n";
+            state.Players[playerNumber] = new List<Point>() { new Point(-1, -1) };
+            state.Results += "Player " + playerNumber + " lost";
         }
 
         public void Move(Point direction)
@@ -236,9 +146,9 @@ namespace TronWindow
         public const int W = 30, H = 20, Scale = 16;
         public char[,] Board = new char[W, H];
         public Bitmap State = null;
-        public Dictionary<char, List<Point>> Players = new Dictionary<char, List<Point>>();
-        public string ServerDebug, PlayerDebug, Moves, Results;
-        public int ScorePlayer, ScoreHuman;
+        public List<Point>[] Players = null;
+        public string PlayerDebug = "", Moves = "", Results = "";
+        public string ServerDebug = "";
 
         static char[,] getBlankBoard()
         {
@@ -253,56 +163,29 @@ namespace TronWindow
             return board;
         }
 
-        //Utility
-        static void setCheckerBoard(char[,] board)
-        {
-            for (int i = 0; i < W; i++)
-            {
-                for (int j = 0; j < H; j++)
-                {
-                    if (i % 2 == 1 && j % 2 == 1)
-                        board[i, j] = 'X';
-                }
-            }
-        }
-
-        //Utility
-        static char[,] getBoard(string text)
-        {
-            char[,] board = new char[W, H];
-            for (int i = 0; i < W; i++)
-            {
-                for (int j = 0; j < H; j++)
-                {
-                    board[i, j] = text[j * GameState.W + i];
-                }
-            }
-            return board;
-        }
-
         public static ServerGameState Initial()
         {
             //
             char[,] board = getBlankBoard();
-            Dictionary<char, List<Point>> players = new Dictionary<char, List<Point>>();
+            List<Point>[] players = new List<Point>[4];
             //
-            board[0, 0] = '0';
-            List<Point> trail0 = new List<Point>();
-            trail0.Add(new Point(10, 10));
-            players['0'] = trail0;
-            List<Point> trail1 = new List<Point>();
-            trail1.Add(new Point(25, 18));
-            players['1'] = trail1;
+            board[10, 10] = '0';
+            players[0] = new List<Point>() { new Point(10, 10) };
+            board[25, 18] = '1';
+            players[1] = new List<Point>() { new Point(25, 18) };
+            board[3, 3] = '2';
+            players[2] = new List<Point>() { new Point(3, 3) };
+            board[27, 4] = '3';
+            players[3] = new List<Point>() { new Point(27, 4) };
             //
-            return new ServerGameState(players, board, "", "", "", "", 0, 0);
+            return new ServerGameState(players, board, "", "", "", "");
         }
 
-        public ServerGameState(Dictionary<char, List<Point>> players, char[,] board, string serverDebug, string playerDebug, string moves, string results, int scorePlayer, int scoreHuman)
+        public ServerGameState(List<Point>[] players, char[,] board, string serverDebug, string playerDebug, string moves, string results)
         {
             Players = players;
             Board = board;
             ServerDebug = serverDebug; PlayerDebug = playerDebug; Moves = moves; Results = results;
-            ScorePlayer = scorePlayer; ScoreHuman = scoreHuman;
         }
 
         public ServerGameState(ServerGameState state)
@@ -316,29 +199,37 @@ namespace TronWindow
                 }
             }
             //
-            foreach (char players in state.Players.Keys)
+            Players = new List<Point>[state.Players.Length];
+            for (int k = 0; k < Players.Length; k++)
             {
-                List<Point> trail = state.Players[players];
+                List<Point> trail = state.Players[k];
                 List<Point> newTrail = new List<Point>();
                 foreach (Point p in trail)
                 {
                     newTrail.Add(p);
                 }
-                Players[players] = newTrail;
+                Players[k] = newTrail;
             }
-            //
-            ScorePlayer = state.ScorePlayer; ScoreHuman = state.ScoreHuman;
         }
 
         #region Public
-        public string GetSerialization()
+        public bool GameHasEnded()
+        {
+            int players = 0;
+            foreach (List<Point> trail in Players)
+            {
+                if (trail[0].X >= 0) players++;
+            }
+            return players <= 1;
+        }
+        public string GetSerialization(int playerNumber)
         {
             //
-            string lines = "2 1\n";
-            foreach (char key in Players.Keys)
+            string lines = Players.Length.ToString() + " " + playerNumber.ToString() + "\n";
+            for (int k = 0; k < Players.Length; k++)
             {
-                Point curr = Players[key][Players[key].Count() - 1];
-                Point prev = Players[key][Math.Max(Players[key].Count() - 2, 0)];
+                Point curr = Players[k][Players[k].Count() - 1];
+                Point prev = Players[k][Math.Max(Players[k].Count() - 2, 0)];
                 lines += prev.X + " " + prev.Y + " " + curr.X + " " + curr.Y + "\n";
             }
             return lines;
@@ -349,26 +240,34 @@ namespace TronWindow
             if (State != null) return State;
 
             //
+            List<Color> colors = new List<Color>() { Color.FromArgb(255, 180, 0, 0), Color.FromArgb(255, 0, 180, 0), Color.FromArgb(255, 180, 0, 180), Color.FromArgb(255, 180, 180, 0) };
             State = new Bitmap(W * Scale, H * Scale);
-            Pen greenPen = new Pen(Color.FromArgb(255, 0, 180, 0), 10);
-            Pen redPen = new Pen(Color.FromArgb(255, 180, 0, 0), 10);
-            greenPen.Alignment = PenAlignment.Center;
-            redPen.Alignment = PenAlignment.Center;
             using (Graphics g = Graphics.FromImage(State))
             {
-                g.Clear(Color.FromArgb(255, 20, 80, 20));
-                foreach (char key in Players.Keys)
+                //
+                g.DrawImage(new Bitmap(@"Tron.png"), 0, 0, 480, 320);
+                //
+                for (int k = 0; k < Players.Length; k++)
                 {
-                    List<Point> trail = Players[key];
+                    //
+                    Pen pen = new Pen(colors[k], 10);
+                    pen.Alignment = PenAlignment.Center;
+                    Brush brush = new SolidBrush(colors[k]);
+                    //
+                    List<Point> trail = Players[k];
                     if (trail.Count() > 1)
                     {
                         for (int i = 1; i < trail.Count(); i++)
                         {
                             Point prev = trail[i - 1];
                             Point curr = trail[i];
-                            g.DrawLine(key == '0' ? redPen : greenPen, prev.X * 16 + 8, prev.Y * 16 + 8, curr.X * 16 + 8, curr.Y * 16 + 8);
+                            g.DrawLine(pen, prev.X * 16 + 8, prev.Y * 16 + 8, curr.X * 16 + 8, curr.Y * 16 + 8);
+                            g.FillEllipse(brush, new Rectangle(new Point(curr.X * 16 + 2, curr.Y * 16 + 2), new Size(11, 11)));
                         }
                     }
+                    //
+                    Point spot = Players[k][Players[k].Count() - 1];
+                    g.FillEllipse(brush, new Rectangle(new Point(spot.X * 16 + 2, spot.Y * 16 + 2), new Size(11, 11)));
                 }
             }
 

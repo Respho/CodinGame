@@ -23,28 +23,8 @@ namespace TronWindow
         private void TronWindow_Load(object sender, EventArgs e)
         {
             Server = new TronServer();
-            txtGameState.Text = Server.GetCurrent().GetBoard().Replace("\n", "\r\n");
 
-            ////
-            //if (picState.Image == null)
-            //{
-            //    Bitmap bitmap = new Bitmap(picState.Width, picState.Height);
-            //    using (Graphics g = Graphics.FromImage(bitmap))
-            //    {
-            //        g.Clear(Color.FromArgb(255, 20, 80, 20));
-            //    }
-            //    picState.Image = bitmap;
-            //}
-            ////
-            //using (Graphics g = Graphics.FromImage(picState.Image))
-            //{
-            //    Pen greenPen = new Pen(Color.FromArgb(255, 0, 180, 0), 10);
-            //    greenPen.Alignment = PenAlignment.Center;
-            //    g.DrawLine(greenPen, 10, 100, 100, 50);
-            //    //g.DrawImage(new Bitmap(@"C:\Users\Mena\Desktop\1.png"), new Point(182, 213));
-            //}
-            ////
-            //picState.Invalidate();
+            picState.Image = Server.States[0].GetState();
         }
 
         private void update()
@@ -62,7 +42,7 @@ namespace TronWindow
             txtMoves.Text = state.Moves.Replace("\n", "\r\n");
             txtResults.Text = state.Results.Replace("\n", "\r\n");
             //
-            lblScore.Text = state.ScorePlayer + "/" + state.ScoreHuman;
+            lblScore.Text = "--";
         }
 
         private void btnPrev_Click(object sender, EventArgs e)

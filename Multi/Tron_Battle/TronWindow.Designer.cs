@@ -80,7 +80,7 @@
             this.txtServer.Multiline = true;
             this.txtServer.Name = "txtServer";
             this.txtServer.ReadOnly = true;
-            this.txtServer.Size = new System.Drawing.Size(320, 413);
+            this.txtServer.Size = new System.Drawing.Size(320, 385);
             this.txtServer.TabIndex = 4;
             // 
             // txtPlayer
@@ -115,11 +115,11 @@
             this.txtMoves.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtMoves.Enabled = false;
             this.txtMoves.Font = new System.Drawing.Font("Courier New", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtMoves.Location = new System.Drawing.Point(498, 431);
+            this.txtMoves.Location = new System.Drawing.Point(497, 403);
             this.txtMoves.Multiline = true;
             this.txtMoves.Name = "txtMoves";
             this.txtMoves.ReadOnly = true;
-            this.txtMoves.Size = new System.Drawing.Size(320, 50);
+            this.txtMoves.Size = new System.Drawing.Size(320, 78);
             this.txtMoves.TabIndex = 7;
             // 
             // txtResults
@@ -157,41 +157,41 @@
             // 
             // btnUp
             // 
-            this.btnUp.Location = new System.Drawing.Point(720, 645);
+            this.btnUp.Location = new System.Drawing.Point(698, 645);
             this.btnUp.Name = "btnUp";
-            this.btnUp.Size = new System.Drawing.Size(43, 40);
+            this.btnUp.Size = new System.Drawing.Size(58, 40);
             this.btnUp.TabIndex = 11;
-            this.btnUp.Text = "Up";
+            this.btnUp.Text = "Up &I";
             this.btnUp.UseVisualStyleBackColor = true;
             this.btnUp.Click += new System.EventHandler(this.btnUp_Click);
             // 
             // btnDown
             // 
-            this.btnDown.Location = new System.Drawing.Point(720, 691);
+            this.btnDown.Location = new System.Drawing.Point(698, 691);
             this.btnDown.Name = "btnDown";
-            this.btnDown.Size = new System.Drawing.Size(43, 40);
+            this.btnDown.Size = new System.Drawing.Size(58, 40);
             this.btnDown.TabIndex = 12;
-            this.btnDown.Text = "Down";
+            this.btnDown.Text = "Down &K";
             this.btnDown.UseVisualStyleBackColor = true;
             this.btnDown.Click += new System.EventHandler(this.btnDown_Click);
             // 
             // btnLeft
             // 
-            this.btnLeft.Location = new System.Drawing.Point(671, 691);
+            this.btnLeft.Location = new System.Drawing.Point(639, 691);
             this.btnLeft.Name = "btnLeft";
-            this.btnLeft.Size = new System.Drawing.Size(43, 40);
+            this.btnLeft.Size = new System.Drawing.Size(53, 40);
             this.btnLeft.TabIndex = 13;
-            this.btnLeft.Text = "Left";
+            this.btnLeft.Text = "Left &J";
             this.btnLeft.UseVisualStyleBackColor = true;
             this.btnLeft.Click += new System.EventHandler(this.btnLeft_Click);
             // 
             // btnRight
             // 
-            this.btnRight.Location = new System.Drawing.Point(769, 691);
+            this.btnRight.Location = new System.Drawing.Point(762, 691);
             this.btnRight.Name = "btnRight";
-            this.btnRight.Size = new System.Drawing.Size(43, 40);
+            this.btnRight.Size = new System.Drawing.Size(55, 40);
             this.btnRight.TabIndex = 14;
-            this.btnRight.Text = "Right";
+            this.btnRight.Text = "Right &L";
             this.btnRight.UseVisualStyleBackColor = true;
             this.btnRight.Click += new System.EventHandler(this.btnRight_Click);
             // 
@@ -226,6 +226,9 @@
             this.Controls.Add(this.picState);
             this.Controls.Add(this.txtGameState);
             this.Controls.Add(this.btnPrev);
+            this.MaximizeBox = false;
+            this.MaximumSize = new System.Drawing.Size(1376, 814);
+            this.MinimumSize = new System.Drawing.Size(1376, 814);
             this.Name = "TronWindow";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.Text = "Tron";

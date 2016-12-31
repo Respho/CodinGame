@@ -32,6 +32,132 @@ namespace TronWindow
             return Math.Abs(from.X - to.X) + Math.Abs(from.Y - to.Y);
         }
 
+        /*
+        http://theory.stanford.edu/~amitp/GameProgramming/ImplementationNotes.html
+        OPEN = priority queue containing START
+        CLOSED = empty set
+        while lowest rank in OPEN is not the GOAL:
+            current = remove lowest rank item from OPEN
+            add current to CLOSED
+            for neighbors of current:
+            cost = g(current) + movementcost(current, neighbor)
+            if neighbor in OPEN and cost less than g(neighbor):
+                remove neighbor from OPEN, because new path is better
+            if neighbor in CLOSED and cost less than g(neighbor): ⁽²⁾
+                remove neighbor from CLOSED
+            if neighbor not in OPEN and neighbor not in CLOSED:
+                set g(neighbor) to cost
+                add neighbor to OPEN
+                set priority queue rank to g(neighbor) + h(neighbor)
+                set neighbor's parent to current
+        */
+        public static List<Point> GetPath(GameState state, Point startPoint, Point endPoint)
+        {
+            Dictionary<Point, Point> Froms = new Dictionary<Point, Point>();
+            Dictionary<Point, int> Steps = new Dictionary<Point, int>();
+            Dictionary<Point, int> Distances = new Dictionary<Point, int>();
+            //
+            HashSet<Point> OPEN = new HashSet<Point>() { startPoint };
+            HashSet<Point> CLOSED = new HashSet<Point>();
+
+            //
+            int Step = 0;
+            Froms[startPoint] = startPoint;
+            Steps[startPoint] = Step;
+            Distances[startPoint] = 0;
+            //while lowest rank in OPEN is not the GOAL
+            while ((OPEN.Count() > 0) && (OPEN.OrderBy(x => Distances[x]).First() != endPoint))
+            {
+                //current = remove lowest rank item from OPEN
+                //add current to CLOSED
+                Point current = OPEN.OrderBy(x => Distances[x]).First();
+                OPEN.Remove(current);
+                CLOSED.Add(current);
+                //for neighbors of current
+                List<Point> neighbors = new List<Point>();
+                neighbors.Add(new Point(current.X + 1, current.Y));
+                neighbors.Add(new Point(current.X - 1, current.Y));
+                neighbors.Add(new Point(current.X, current.Y + 1));
+                neighbors.Add(new Point(current.X, current.Y - 1));
+                foreach (Point neighbor in neighbors)
+                {
+                    //Is valid neighbor?
+                    if (neighbor.X != endPoint.X || neighbor.Y != endPoint.Y)
+                    {
+                        if (neighbor.X >= W || neighbor.X < 0 || neighbor.Y >= H || neighbor.Y < 0) continue;
+                        if (state.Board[neighbor.X, neighbor.Y] != BLANK) continue;
+                    }
+                    //cost = g(current) + movementcost(current, neighbor)
+                    int cost = Distances[current] + 1;
+                    //if neighbor in OPEN and cost less than g(neighbor)
+                    if (OPEN.Contains(neighbor) && (cost < Distances[neighbor]))
+                    {
+                        //remove neighbor from OPEN, because new path is better
+                        OPEN.Remove(neighbor);
+                    }
+                    //if neighbor in CLOSED and cost less than g(neighbor)
+                    if (CLOSED.Contains(neighbor) && (cost < Distances[neighbor]))
+                    {
+                        //remove neighbor from CLOSED
+                        CLOSED.Remove(neighbor);
+                    }
+                    //if neighbor not in OPEN and neighbor not in CLOSED:
+                    if (!OPEN.Contains(neighbor) && !CLOSED.Contains(neighbor))
+                    {
+                        //set g(neighbor) to cost
+                        Distances[neighbor] = cost;
+                        //add neighbor to OPEN
+                        OPEN.Add(neighbor);
+                        //set neighbor's parent to current
+                        Froms[neighbor] = current;
+                        Steps[neighbor] = Steps[current] + 1;
+                    }
+                }
+            }
+
+            //
+            List<Point> Result = new List<Point>();
+            //Impossible
+            if (!Froms.ContainsKey(endPoint))
+            {
+                return Result;
+            }
+            //
+            Point currNode = endPoint;
+            while (currNode != startPoint)
+            {
+                Result.Add(currNode);
+                currNode = Froms[currNode];
+            }
+            //
+            return Result;
+        }
+
+        //Get a valid opponent
+        public int GetOpponent(int playerNumber, int playerCount, ref string debug)
+        {
+            Point current = Players[playerNumber];
+            int opponent = -1; int min = 99999;
+            debug = "";
+            //
+            for (int i = 0; i < Players.Count(); i++)
+            {
+                if (playerNumber == i) continue;
+                if (Players[i].X < 0) continue;
+                List<Point> path = GetPath(this, Players[playerNumber], Players[i]);
+                if (opponent == -1) opponent = i;
+                //
+                debug += "Opponent (" + Players[i].X + "," + Players[i].Y + ") is " + ((path.Count() > 0) ? "" + path.Count() + " apart" : "unreachable") + "\n";
+                if ((path.Count() > 0) && (path.Count() < min))
+                {
+                    min = path.Count();
+                    opponent = i;
+                }
+            }
+            //
+            return opponent;
+        }
+
         //Get the DOF of a player
         public int GetDOF(int playerNumber)
         {
@@ -43,6 +169,7 @@ namespace TronWindow
             }
             return dof;
         }
+
         //
         public static Direction GetDirection(Point from, Point to)
         {
@@ -63,7 +190,7 @@ namespace TronWindow
                 if (isValid(next))
                 {
                     GameState newState = new GameState(this);
-                    newState.Board[next.X, next.Y] = (char)(playerNumber + 47);
+                    newState.Board[next.X, next.Y] = (char)(playerNumber + 48);
                     newState.Players[playerNumber] = next;
                     children.Add(newState);
                 }
@@ -140,40 +267,54 @@ namespace TronWindow
     {
         System.Diagnostics.Stopwatch Timer = new System.Diagnostics.Stopwatch();
         //
-        public int PlayerNumber, PlayerCount;
+        public int PlayerCount, PlayerNumber;
         public List<GameState> States = new List<GameState>();
         public string Debug;
 
-        public TronPlayer(int playerNumber, int playerCount)
+        public TronPlayer(int playerCount, int playerNumber)
         {
-            PlayerNumber = playerNumber;
             PlayerCount = playerCount;
+            PlayerNumber = playerNumber;
             States.Add(new GameState());
         }
 
-        void update(int p, Point p0, Point p1)
+        void update(string serialization)
         {
             //
+            Debug = "";
             GameState currentState = States[States.Count() - 1];
-            //Clear
-            if (p0.X == -1)
+            debug("Serialization " + serialization.Trim());
+            string[] lines = serialization.Trim().Split('\n');
+            for (int k = 0; k < PlayerCount; k++)
             {
-                for (int i = 0; i < GameState.W; i++)
+                string[] inputs = lines[k + 1].Split(' ');
+                int x0 = int.Parse(inputs[0]); // starting X coordinate of lightcycle (or -1)
+                int y0 = int.Parse(inputs[1]); // starting Y coordinate of lightcycle (or -1)
+                int x1 = int.Parse(inputs[2]); // starting X coordinate of lightcycle (can be the same as X0 if you play before this player)
+                int y1 = int.Parse(inputs[3]); // starting Y coordinate of lightcycle (can be the same as Y0 if you play before this player)
+                //
+                char player = (char)(k + 48);
+                //Clear
+                if (x0 < 0)
                 {
-                    for (int j = 0; j < GameState.H; j++)
+                    for (int i = 0; i < GameState.W; i++)
                     {
-                        if (currentState.Board[i, j] == p)
-                            currentState.Board[i, j] = GameState.BLANK;
+                        for (int j = 0; j < GameState.H; j++)
+                        {
+                            if (currentState.Board[i, j] == player)
+                                currentState.Board[i, j] = GameState.BLANK;
+                        }
                     }
+                    currentState.Players[k] = new Point(-1, -1);
+                    continue;
                 }
-                currentState.Players[p] = p0;
-                return;
+                //Update
+                currentState.Board[x0, y0] = player;
+                currentState.Board[x1, y1] = player;
+                Direction dir = GameState.GetDirection(new Point(x0, y0), new Point(x1, y1));
+                currentState.Directions[k] = dir;
+                currentState.Players[k] = new Point(x1, y1);
             }
-            currentState.Board[p0.X, p0.Y] = (char)(p + 48);
-            currentState.Board[p1.X, p1.Y] = (char)(p + 48);
-            Direction dir = GameState.GetDirection(p0, p1);
-            currentState.Directions[p] = dir;
-            currentState.Players[p] = p1;
         }
 
         string compute()
@@ -187,16 +328,19 @@ namespace TronWindow
                 //
                 Timer.Reset();
                 Timer.Start();
-
+                //
+                string opponentDebug = "";
+                int opponent = currentState.GetOpponent(PlayerNumber, PlayerCount, ref opponentDebug);
+                debug(opponentDebug.Trim());
+                int depth = 5;
                 //SpanTree(null, current, playerNumber, opponentNumber, 3 (me them me), 0 (current))
-                GameTree root = GameTree.SpanTree(null, currentState, PlayerNumber, 1 - PlayerNumber, 8, 0);
+                GameTree root = GameTree.SpanTree(null, currentState, PlayerNumber, opponent, depth, 0);
                 //alphabeta(origin, depth, -∞, +∞, TRUE)
-                TronMinimax tronMinimax = new TronMinimax(PlayerNumber, 1 - PlayerNumber);
-                GameTree next = tronMinimax.MinimaxAlphaBeta(root, 3, double.MinValue, double.MaxValue, true);
+                TronMinimax tronMinimax = new TronMinimax(PlayerNumber, opponent);
+                GameTree next = tronMinimax.MinimaxAlphaBeta(root, depth, double.MinValue, double.MaxValue, true);
                 //
                 string vis = currentState.GetVisual(next.Score.TerritoryPlayer, next.Score.TerritoryOpponent);
                 debug("Score - " + next.Score.Score);
-
                 //
                 Timer.Stop();
                 long time = Timer.ElapsedMilliseconds;
@@ -217,28 +361,11 @@ namespace TronWindow
         public string GetMove(string serialization)
         {
             //
-            Debug = "";
+            States.Add(new GameState(States[States.Count() - 1]));
             //
-            GameState latest = States[States.Count() - 1];
-            GameState state = new GameState(latest);
-            States.Add(state);
-
-            string[] lines = serialization.Trim().Split('\n');
-            for (int i = 1; i <= PlayerCount; i++)
-            {
-                string[] inputs = lines[i].Split(' ');
-                int x0 = int.Parse(inputs[0]); // starting X coordinate of lightcycle (or -1)
-                int y0 = int.Parse(inputs[1]); // starting Y coordinate of lightcycle (or -1)
-                int x1 = int.Parse(inputs[2]); // starting X coordinate of lightcycle (can be the same as X0 if you play before this player)
-                int y1 = int.Parse(inputs[3]); // starting Y coordinate of lightcycle (can be the same as Y0 if you play before this player)
-                //
-                update(i - 1, new Point(x0, y0), new Point(x1, y1));
-                debug("update " + lines[i]);
-            }
-
+            update(serialization);
             //
-            string move = compute();
-            return move;
+            return compute();
         }
 
         //Rename this method to Main() when running on CG
@@ -253,7 +380,7 @@ namespace TronWindow
                 string[] inputs = line.Split(' ');
                 int N = int.Parse(inputs[0]); // total number of players (2 to 4).
                 int P = int.Parse(inputs[1]); // your player number (0 to 3).
-                if (player == null) player = new TronPlayer(P, N);
+                if (player == null) player = new TronPlayer(N, P);
                 //
                 string serialization = "";
                 serialization += line + "\n";
