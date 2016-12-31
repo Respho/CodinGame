@@ -14,7 +14,7 @@ namespace TronWindow
         public List<Point> TerritoryOpponent = new List<Point>();
         public double Score;
 
-        public static Evaluation Evaluate(GameState state, int PlayerNumber, int OpponentNumber)
+        public static Evaluation Evaluate(GameState state, int playerNumber, int opponentNumber)
         {
             //
             Evaluation evaluation = new Evaluation();
@@ -23,10 +23,10 @@ namespace TronWindow
             //Voronoi heuristic
             int territoryRound = 9999;
             List<Point> listPlayer = new List<Point>();
-            listPlayer.Add(state.Players[PlayerNumber]);
+            listPlayer.Add(state.Players[playerNumber]);
             List<Point> listOpponent = new List<Point>();
-            listOpponent.Add(state.Players[OpponentNumber]);
-            char player = (char)(PlayerNumber + 48); char opponent = (char)(OpponentNumber + 48);
+            listOpponent.Add(state.Players[opponentNumber]);
+            char player = (char)(playerNumber + 48); char opponent = (char)(opponentNumber + 48);
             while (territoryRound > 0)
             {
                 territoryRound = 0;
@@ -71,8 +71,10 @@ namespace TronWindow
                 }
                 listOpponent = newListOpponent;
             }
+            //DOF
+            int dof = state.GetDOF(playerNumber);
             //
-            evaluation.Score = 1.0 + evaluation.TerritoryPlayer.Count() - evaluation.TerritoryOpponent.Count();
+            evaluation.Score = (10000 * evaluation.TerritoryPlayer.Count()) - (100 * evaluation.TerritoryOpponent.Count()) - dof;
             //
             return evaluation;
         }

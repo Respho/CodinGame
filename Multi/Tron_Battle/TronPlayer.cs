@@ -18,7 +18,7 @@ namespace TronWindow
         public const char BLANK = (char)46;
         public char[,] Board = new char[W, H];
         //
-        public Point[] Players = new Point[4];
+        public Point[] Players = { new Point(-1, -1), new Point(-1, -1), new Point(-1, -1), new Point(-1, -1) };
         public Direction[] Directions = new Direction[4];
         public Turn[] Turns = new Turn[4];
 
@@ -332,7 +332,7 @@ namespace TronWindow
                 string opponentDebug = "";
                 int opponent = currentState.GetOpponent(PlayerNumber, PlayerCount, ref opponentDebug);
                 debug(opponentDebug.Trim());
-                int depth = 5;
+                int depth = 3;
                 //SpanTree(null, current, playerNumber, opponentNumber, 3 (me them me), 0 (current))
                 GameTree root = GameTree.SpanTree(null, currentState, PlayerNumber, opponent, depth, 0);
                 //alphabeta(origin, depth, -∞, +∞, TRUE)
@@ -399,7 +399,7 @@ namespace TronWindow
         {
             Debug += message + "\n";
             //
-            Console.Error.WriteLine(message);
+            //Console.Error.WriteLine(message);
         }
     }
 }
